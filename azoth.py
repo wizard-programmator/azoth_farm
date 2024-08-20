@@ -14,10 +14,11 @@ def search_and_click_scout(image_path, precision=0.8, delay_after_click=125, max
     attempt = 0
     while attempt < max_attempts:
         try:
+            t.sleep(5)
             # Take a screenshot of the current screen
             screenshot = pya.screenshot()
             
-            # Search for the image
+            # Search for the image>
             position = imgs.imagesearch(image_path, screenshot=screenshot, precision=precision)
             
             if position[0] != -1:
