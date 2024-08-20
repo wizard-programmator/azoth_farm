@@ -31,7 +31,6 @@ or
 python azoth.py
 
 ## UPCOMING UPDATE
-- Update the code base on screen size
 - Offer snacks for happiness
 - Change realm when azoth is unavailable in current realm. 
 
