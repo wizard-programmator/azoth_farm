@@ -3,7 +3,6 @@ import imgs  # Custom module for image searching and clicking
 import logging
 import os
 import time as t
-from pynput.keyboard import Key, Controller
 
 
 # Constants for image file paths based on resolution
