@@ -25,14 +25,13 @@ or
 - pip install opencv-python numpy pyautogui pillow
 
 # SCREEN RESOLUTION
-1920 X 1080
-
+* currently working to make sure it works on all resolution
+* scout work for all resolution but feeding only works for 800x600
 ## bash
 python azoth.py
 
 ## UPCOMING UPDATE
-- Offer snacks for happiness
-- Change realm when azoth is unavailable in current realm. 
+- If happiness is 100 and scout is not found, CHANGE REALM
 
 ## ISSUE OR MORE idea?
 mooncatcherseth@gmail.com
