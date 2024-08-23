@@ -3,6 +3,8 @@ import imgs  # Custom module for image searching and clicking
 import logging
 import os
 import time as t
+from pynput.keyboard import Key, Controller
+
 
 # Constants for image file paths based on resolution
 IMAGE_PATHS = {
@@ -246,6 +248,29 @@ def perform_sequence(resolution_key):
     t.sleep(1)  # Wait 1 second before trying Scout
 
 
+
+
+def press_key(d_duration=2):
+    """
+    Simulate pressing 'D' and 'Ctrl' keys with specified durations.
+    
+    Args:
+        d_duration (int): Duration to press the 'D' key in seconds.
+        ctrl_duration (int): Duration to hold down the 'Ctrl' key in seconds.
+    """    
+    keyboard = Controller()
+    
+    try:
+        # Press and hold 'D' key
+        keyboard.press('d')
+        logging.info(f"D key pressed down.")
+        
+        # Wait for the duration while 'D' key is held
+        t.sleep(d_duration)
+        
+        
+    except Exception as e:
+        logging.error(f"Error in press_d_then_ctrl: {e}")
 def wait_for_image(image_path, precision=0.8, wait_time=60):
     """
     Wait for an image to appear on the screen with a countdown.
@@ -264,6 +289,9 @@ def wait_for_image(image_path, precision=0.8, wait_time=60):
     while True:
         if click_image(image_path, precision):
             logging.info(f"Found {image_path}.")
+            
+            if image_path == IMAGE_PATHS[resolution_key]["wizard101"]:
+                press_key()
             return True
 
         remaining_time = int(end_time - t.time())
