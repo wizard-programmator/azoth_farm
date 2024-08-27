@@ -26,12 +26,12 @@ or
 
 # SCREEN RESOLUTION
 * currently working to make sure it works on all resolution
-* scout work for all resolution but feeding only works for 800x600
 ## bash
 python azoth.py
 
 ## UPCOMING UPDATE
-- If happiness is 100 and scout is not found, CHANGE REALM
+Shoot me an email if you need any particular update in mind
+all necessary update provided.
 
 ## ISSUE OR MORE idea?
 mooncatcherseth@gmail.com
