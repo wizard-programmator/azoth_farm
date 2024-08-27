@@ -3,6 +3,8 @@ import imgs  # Custom module for image searching and clicking
 import logging
 import os
 import time as t
+from pynput.keyboard import Key, Controller
+
 
 
 # Constants for image file paths based on resolution
@@ -96,7 +98,8 @@ IMAGE_PATHS = {
         "food": "assets/800x600/food.png",
         "feed": "assets/800x600/feed.png",
         "wizard101": "assets/800x600/wizard101.png",
-        "close": "assets/800x600/close.png"
+        "close": "assets/800x600/close.png",
+        "happiness": "assets/800x600/happiness.png"
     }
 }
 
@@ -210,7 +213,7 @@ def perform_sequence(resolution_key):
     Perform a sequence of actions based on the availability of images.
     Args:
         resolution_key (str): The selected screen resolution key.
-    """    
+    """
     image_paths = IMAGE_PATHS.get(resolution_key, {})
     resolution = RESOLUTIONS.get(resolution_key, (0, 0))
     width, height = resolution
@@ -222,29 +225,46 @@ def perform_sequence(resolution_key):
         pya.click(center_x, center_y)
         logging.info(f"Clicked center of the screen at ({center_x}, {center_y})")
 
+    def check_happiness():
+        """
+        Check for the presence of the happiness image.
+        Returns:
+            bool: True if happiness is detected, False otherwise.
+        """
+        happiness_image_path = image_paths.get("happiness")
+        return happiness_image_path and click_image(happiness_image_path)
+
+    def handle_image(image_key):
+        """
+        Handle clicking an image and logging its status.
+        Args:
+            image_key (str): The key for the image in IMAGE_PATHS.
+        Returns:
+            bool: True if the image was clicked, False otherwise.
+        """
+        image_path = image_paths.get(image_key)
+        return click_image(image_path) if image_path else False
+
     # Step 1: Attempt to click Scout
-    if click_image(image_paths.get("scout1")) or click_image(image_paths.get("scout2")):
+    if handle_image("scout1") or handle_image("scout2"):
         click_center()
         t.sleep(125)  # Wait for 2 minutes before the next action
         return
-    
+
     # Step 2: If Scout not found, check for Snack
-    if click_image(image_paths.get("snack")):
-        if click_image(image_paths.get("food")):
-            if click_image(image_paths.get("feed")):
-                click_image(image_paths.get("close"))
-            else:
-                click_image(image_paths.get("close"))
-            t.sleep(1)  # Wait 1 second before trying Scout
-        else:
-            click_image(image_paths.get("close"))
-            t.sleep(1)  # Wait 1 second before trying Scout
+    if handle_image("snack"):
+        if check_happiness():  # Only click food if happiness is not detected
+            if handle_image("food"):
+                handle_image("feed")
+        handle_image("close")
+        t.sleep(1)  # Wait 1 second before trying Scout
     else:
-        click_image(image_paths.get("pet"))
+        handle_image("pet")
         return
 
-    click_image(image_paths.get("close"))
+    handle_image("close")
     t.sleep(1)  # Wait 1 second before trying Scout
+
 
 
 
