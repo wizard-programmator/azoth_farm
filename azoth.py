@@ -300,6 +300,18 @@ def change_realm():
                         logging.error("Failed to click 'Go to Realm'.")
     else:
         logging.error("Failed to click the book.")
+        
+        
+def check_happiness():
+    """
+    Check for the presence of the happiness image.
+    Returns:
+        bool: True if happiness is detected, False otherwise.
+    """
+    happiness_image_path = IMAGE_PATHS.get("happiness")
+    return happiness_image_path and click_image(happiness_image_path)
+
+
 
 def perform_sequence(resolution_key):
     """
@@ -309,7 +321,6 @@ def perform_sequence(resolution_key):
     """
     image_paths = IMAGE_PATHS.get(resolution_key, {})
 
-    # Function to handle clicking an image and logging its status
     def handle_image(image_key):
         """
         Handle clicking an image and logging its status.
@@ -321,45 +332,91 @@ def perform_sequence(resolution_key):
         image_path = image_paths.get(image_key)
         return click_image(image_path) if image_path else False
 
-    # First, handle scout1 and scout2
-    if handle_image("scout1") or handle_image("scout2"):
-        t.sleep(125)  # Wait for 2 minutes before proceeding to the next actions
-        return  # Exit after handling scout1 or scout2
+    def perform_main_actions():
+        """
+        Perform the main actions in the sequence:
+        - Handle scout1 or scout2
+        - Snack
+        - Happiness check
+        - Food (if happiness detected)
+        - Feed
+        - Close
+        - Pet
+        """
+        if handle_image("scout1") or handle_image("scout2"):
+            t.sleep(125)  # Wait 2 minutes before proceeding
+            return True
 
-    # If scout1 and scout2 are not found, proceed with other actions
-    if handle_image("snack"):
-        if check_happiness():  # Only click food if happiness is not detected
-            handle_image("food")
-        handle_image("feed")
-        handle_image("close")
-        t.sleep(1)  # Wait 1 second before trying Scout
-    else:
-        handle_image("pet")
+        if handle_image("snack"):
+            if check_happiness():  # Click food only if happiness is detected
+                handle_image("food")
+            handle_image("feed")
+            handle_image("close")
+            t.sleep(1)  # Wait 1 second before trying Scout
+            return False
+        else:
+            handle_image("pet")
+            handle_image("close")
+            t.sleep(1)  # Wait 1 second before trying Scout
+            return False
 
-    handle_image("close")
-    t.sleep(1)  # Wait 1 second before trying Scout
+    while True:
+        # Perform the main sequence of actions
+        if perform_main_actions():
+            return  # Exit after handling scout1 or scout2
+        
+        # Change the realm
+        change_realm()
+        t.sleep(5)  # Wait for the realm change to complete
 
-    # Finally, change the realm
-    change_realm()
 
 
 
-def press_key(d_duration=2):
+
+
+
+
+
+
+
+
+
+
+def press_keys(d_duration=2, ctrl_delay=1):
     """
-    Simulate pressing 'D' key with a specified duration.
+    Simulate pressing 'D' key, then after a specified delay press 'Ctrl' key while keeping 'D' key pressed.
     Args:
-        d_duration (int): Duration to press the 'D' key in seconds.
+        d_duration (int): Duration to keep the 'D' key pressed in seconds.
+        ctrl_delay (int): Delay in seconds before pressing the 'Ctrl' key after 'D' key is pressed.
     """
     keyboard = Controller()
     
     try:
+        # Press 'D' key
         keyboard.press('d')
         logging.info(f"D key pressed down.")
+        
+        # Wait for the specified duration
         t.sleep(d_duration)
-        keyboard.release('d')
-        logging.info(f"D key released.")
+        
+        # Press 'Ctrl' key after the specified delay
+        t.sleep(ctrl_delay)
+        keyboard.press(Key.ctrl)
+        logging.info(f"Ctrl key pressed down while keeping 'D' key pressed.")
+        
+        # You can wait for additional time if needed or perform other actions here
+        # Example: t.sleep(2)  # Keep both keys pressed for 2 seconds
+
+        # Release both keys
+        t.sleep(1)  # Adjust this sleep time as needed
+        # keyboard.release('d')
+        keyboard.release(Key.ctrl)
+        logging.info(f"D and Ctrl keys released.")
+    
     except Exception as e:
-        logging.error(f"Error in press_key: {e}")
+        logging.error(f"Error in press_keys: {e}")
+
+
 
 def wait_for_image(image_path, precision=0.8, wait_time=60):
     """
@@ -379,7 +436,7 @@ def wait_for_image(image_path, precision=0.8, wait_time=60):
             logging.info(f"Found {image_path}.")
             
             if image_path == IMAGE_PATHS[resolution_key]["wizard101"]:
-                press_key()
+                press_keys()
             return True
 
         remaining_time = int(end_time - t.time())
