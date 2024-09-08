@@ -3,7 +3,6 @@ import imgs  # Custom module for image searching and clicking
 import logging
 import os
 import time as t
-from pynput.keyboard import Key, Controller
 import random
 
 
@@ -159,7 +158,9 @@ IMAGE_PATHS = {
         "realms": "assets/800x600/realms.png",
         "next_realm": "assets/800x600/next_realm.png",
         "realm_name": "assets/800x600/realm_name.png",
-        "go_to_realm": "assets/800x600/go_to_realm.png"
+        "go_to_realm": "assets/800x600/go_to_realm.png",
+        "center": "assets/800x600/center.png",
+        "happiness": "assets/800x600/happiness.png"
     }
 }
 
@@ -184,16 +185,211 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 
+def file_exists(file_path):
+    return os.path.isfile(file_path)
 
 
+def search_image(image_path, precision=0.8):
+    try:
+        screenshot = pya.screenshot()
+        screenshot_path = "screenshot.png"
+        screenshot.save(screenshot_path)
+        
+        # Search for the image on the screen
+        position = imgs.imagesearch(image_path, screenshot=screenshot, precision=precision)
+        
+        # Clean up the screenshot file after using it
+        if os.path.exists(screenshot_path):
+            os.remove(screenshot_path)  # Delete the screenshot file
+        
+        # Return the position of the found image
+        return position if position and position[0] != -1 else None
+    except Exception as e:
+        logging.error(f"Error in search_image: {e}")
+        return None
 
 
-def prompt_for_resolution():
+def click_image(image_path, precision=0.8):
+    if not file_exists(image_path):
+        logging.error(f"Image {image_path} is missing or does not exist.")
+        return False
+    try:
+        position = search_image(image_path, precision)
+        if position:
+            imgs.clicking_image(image_path)
+            logging.info(f"Clicked image {image_path}")
+            return True
+        return False
+    except Exception as e:
+        logging.error(f"Error in click_image: {e}")
+        return False
+
+
+    
+    
+
+def click_center(resolution_key, precision=0.8):
     """
-    Prompt the user to select a resolution from the predefined list.
+    Search for the center image on the screen and click it.
+    
+    Args:
+        resolution_key (str): The selected screen resolution key.
+        precision (float): Precision of the image search.
     Returns:
-        str: The selected resolution key.
+        bool: True if the image was found and clicked, False otherwise.
     """
+    image_paths = IMAGE_PATHS.get(resolution_key, {})
+    center_image_path = image_paths.get("wizard101")  # Get the center image path based on resolution
+    
+    if not file_exists(center_image_path):
+        logging.error(f"Center image for resolution {resolution_key} is missing or file does not exist.")
+        return False
+
+    try:
+        if click_image(center_image_path, precision):  # Directly click the center image if found
+            logging.info(f"Clicked the center image: {center_image_path}")
+            return True
+        else:
+            logging.warning(f"Center image {center_image_path} not found.")
+            return False
+    except Exception as e:
+        logging.error(f"Error in click_center: {e}")
+        return False
+
+
+    
+
+
+def check_happiness(resolution_key, precision=0.8):
+    image_paths = IMAGE_PATHS.get(resolution_key, {})
+    happiness_image_path = image_paths.get("happiness")
+    if not file_exists(happiness_image_path):
+        logging.error(f"Happiness image for resolution {resolution_key} is missing or file does not exist.")
+        return False
+
+    try:
+        if click_image(happiness_image_path, precision):
+            logging.info(f"Clicked the happiness image: {happiness_image_path}")
+            return True
+        else:
+            logging.warning(f"Happiness image {happiness_image_path} not found.")
+            return False
+    except Exception as e:
+        logging.error(f"Error in check_happiness: {e}")
+        return False
+    
+    # happiness_image_path = IMAGE_PATHS.get(resolution_key).get('happiness')
+    # return happiness_image_path and click_image(happiness_image_path)
+
+
+def change_realm(resolution_key, max_retries=3):
+    """
+    Perform the sequence of clicks to change the realm. If "Go to Realm" is unavailable, retry clicking "Next Realm".
+    
+    Args:
+        resolution_key (str): The selected screen resolution key.
+        max_retries (int): Number of times to retry if "Go to Realm" is unavailable.
+    """
+    image_paths = IMAGE_PATHS[resolution_key]
+    retry_count = 0
+
+    # Step 1: Open the menu to change realms
+    if click_image(image_paths['book']):
+        t.sleep(1)  # Wait for the menu to open
+        
+        if click_image(image_paths['option']):
+            t.sleep(1)
+            
+            if click_image(image_paths['realms']):
+                t.sleep(1)
+                
+                # Step 2: Click "Next Realm" randomly between 1 and 4 times
+                for _ in range(random.randint(1, 5)):
+                    click_image(image_paths['next_realm'])
+                    t.sleep(1)
+                
+                # Step 3: Try to click "Go to Realm", retry if unavailable
+                while retry_count < max_retries:
+                    if click_image(image_paths['realm_name']):
+                        t.sleep(1)
+                        
+                        if click_image(image_paths['go_to_realm']):
+                            logging.info("Successfully changed realm.")
+                            return True  # Exit function if realm change is successful
+                        else:
+                            logging.warning("Go to Realm unavailable, retrying with Next Realm.")
+                            # If "Go to Realm" is unavailable, click "Next Realm" again
+                            click_image(image_paths['next_realm'])
+                            retry_count += 1
+                            t.sleep(1)  # Small delay before retrying
+                    else:
+                        logging.error("Realm name not found.")
+                        return False
+    else:
+        logging.error("Failed to open the book menu.")
+    
+    logging.error("Failed to change the realm after retries.")
+    return False
+
+
+
+def perform_main_sequence(resolution_key):
+    image_paths = IMAGE_PATHS[resolution_key]
+    
+    # Try to click scout1 or scout2 and click center, repeat after 130 seconds
+    if click_image(image_paths['scout1']) or click_image(image_paths['scout2']):
+        click_center(resolution_key)
+        t.sleep(130)
+        return True
+    
+    # If scout is not found, click pet and retry
+    if click_image(image_paths['pet']):
+        # Retry clicking scout after clicking pet
+        if click_image(image_paths.get('scout1')) or click_image(image_paths.get('scout2')):
+            logging.info("Found scout after clicking pet, clicking center.")
+            click_center(resolution_key)
+            t.sleep(130)  # Wait 130 seconds before proceeding
+            return True  # Exit the loop
+        
+        # If scout is still not found, proceed with snack check    
+        logging.info("Scout not found after retrying. Checking for snack.")
+        # Try to find snack after clicking pet
+        if not click_image(image_paths['snack']):
+            # If snack is not found, click center, then click pet again
+            logging.info("Snack not found, clicking center and retrying pet.")
+            click_center(resolution_key)
+            t.sleep(1)  # Small delay
+            # Click pet again after center click
+            if click_image(image_paths['pet']):
+                logging.info("Clicked pet again after clicking center.")
+                # After retrying pet, try scout again
+                if click_image(image_paths['scout1']) or click_image(image_paths['scout2']):
+                    click_center(resolution_key)
+                    t.sleep(130)
+                    return True
+    
+    # If scout not found after pet, click snack
+    if click_image(image_paths['snack']):
+        if check_happiness(resolution_key):  # If happiness, click food and feed
+            click_image(image_paths['food'])
+            click_image(image_paths['feed'])
+            click_image(image_paths['close'])
+        else:  # If no happiness, close and change realms
+            click_image(image_paths['close'])
+            change_realm(resolution_key)
+            t.sleep(5)
+    return False
+
+
+def perform_sequence(resolution_key):
+    while True:
+        if perform_main_sequence(resolution_key):
+            continue
+        else:
+            t.sleep(1)  # Short wait before retrying
+
+        
+def prompt_for_resolution():
     print("Select a resolution from the following options:")
     for index, resolution in enumerate(IMAGE_PATHS.keys(), 1):
         print(f"{index}. {resolution}")
@@ -210,257 +406,8 @@ def prompt_for_resolution():
         except ValueError:
             print("Invalid input. Please enter a number.")
 
-def file_exists(file_path):
-    """
-    Check if a file exists.
-    Args:
-        file_path (str): Path to the file.
-    Returns:
-        bool: True if the file exists, False otherwise.
-    """
-    return os.path.isfile(file_path)
-
-def search_image(image_path, precision=0.8):
-    """
-    Search for an image on the screen and return its position.
-    Args:
-        image_path (str): Path to the image file.
-        precision (float): Precision of the image search.
-    Returns:
-        tuple or None: Position of the image if found, otherwise None.
-    """
-    try:
-        screenshot = pya.screenshot()
-        screenshot_path = "screenshot.png"
-        screenshot.save(screenshot_path)
-        logging.debug("Screenshot saved as screenshot.png")
-
-        position = imgs.imagesearch(image_path, screenshot=screenshot, precision=precision)
-        logging.debug(f"Image search result: {position}")
-
-        if position and position[0] != -1:
-            logging.info(f"Image found at position {position}.")
-            return position
-        else:
-            logging.warning(f"Image {image_path} not found.")
-            return None
-
-    except Exception as e:
-        logging.error(f"Error in search_image: {e}")
-        return None
-
-def click_image(image_path, precision=0.8):
-    """
-    Search for an image on the screen and click it if found.
-    Args:
-        image_path (str): Path to the image file.
-        precision (float): Precision of the image search.
-    Returns:
-        bool: True if the image was found and clicked, False otherwise.
-    """
-    if not file_exists(image_path):
-        logging.error(f"Image path {image_path} is missing or file does not exist.")
-        return False
-
-    try:
-        position = search_image(image_path, precision)
-        if position:
-            imgs.clicking_image(image_path)
-            logging.info(f"Clicked on image {image_path} at position {position}.")
-            return True
-        return False
-    except Exception as e:
-        logging.error(f"Error in click_image: {e}")
-        return False
-
-def change_realm():
-    """
-    Perform the sequence of clicks to change the realm.
-    """
-    if click_image('assets/800x600/book.png'):
-        t.sleep(1)  # Wait for the menu to open
-        
-        if click_image("assets/800x600/option.png"):
-            t.sleep(1)
-            
-            if click_image("assets/800x600/realms.png"):
-                t.sleep(1)
-                
-                for _ in range(random.randint(1, 5)):
-                    if not click_image("assets/800x600/next_realm.png"):
-                        logging.error("Failed to click 'Next'.")
-                        return
-                
-                t.sleep(1)
-                
-                if click_image("assets/800x600/realm_name.png"):
-                    t.sleep(1)
-                    
-                    if not click_image("assets/800x600/go_to_realm.png"):
-                        logging.error("Failed to click 'Go to Realm'.")
-    else:
-        logging.error("Failed to click the book.")
-        
-        
-def check_happiness():
-    """
-    Check for the presence of the happiness image.
-    Returns:
-        bool: True if happiness is detected, False otherwise.
-    """
-    happiness_image_path = IMAGE_PATHS.get("happiness")
-    return happiness_image_path and click_image(happiness_image_path)
-
-
-
-def perform_sequence(resolution_key):
-    """
-    Perform a sequence of actions based on the availability of images.
-    Args:
-        resolution_key (str): The selected screen resolution key.
-    """
-    image_paths = IMAGE_PATHS.get(resolution_key, {})
-
-    def handle_image(image_key):
-        """
-        Handle clicking an image and logging its status.
-        Args:
-            image_key (str): The key for the image in IMAGE_PATHS.
-        Returns:
-            bool: True if the image was clicked, False otherwise.
-        """
-        image_path = image_paths.get(image_key)
-        return click_image(image_path) if image_path else False
-
-    def perform_main_actions():
-        """
-        Perform the main actions in the sequence:
-        - Handle scout1 or scout2
-        - Snack
-        - Happiness check
-        - Food (if happiness detected)
-        - Feed
-        - Close
-        - Pet
-        """
-        if handle_image("scout1") or handle_image("scout2"):
-            t.sleep(125)  # Wait 2 minutes before proceeding
-            return True
-
-        if handle_image("snack"):
-            if check_happiness():  # Click food only if happiness is detected
-                handle_image("food")
-            handle_image("feed")
-            handle_image("close")
-            t.sleep(1)  # Wait 1 second before trying Scout
-            return False
-        else:
-            handle_image("pet")
-            handle_image("close")
-            t.sleep(1)  # Wait 1 second before trying Scout
-            return False
-
-    while True:
-        # Perform the main sequence of actions
-        if perform_main_actions():
-            return  # Exit after handling scout1 or scout2
-        
-        # Change the realm
-        change_realm()
-        t.sleep(5)  # Wait for the realm change to complete
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def press_keys(d_duration=2, ctrl_delay=1):
-    """
-    Simulate pressing 'D' key, then after a specified delay press 'Ctrl' key while keeping 'D' key pressed.
-    Args:
-        d_duration (int): Duration to keep the 'D' key pressed in seconds.
-        ctrl_delay (int): Delay in seconds before pressing the 'Ctrl' key after 'D' key is pressed.
-    """
-    keyboard = Controller()
-    
-    try:
-        # Press 'D' key
-        keyboard.press('d')
-        logging.info(f"D key pressed down.")
-        
-        # Wait for the specified duration
-        t.sleep(d_duration)
-        
-        # Press 'Ctrl' key after the specified delay
-        t.sleep(ctrl_delay)
-        keyboard.press(Key.ctrl)
-        logging.info(f"Ctrl key pressed down while keeping 'D' key pressed.")
-        
-        # You can wait for additional time if needed or perform other actions here
-        # Example: t.sleep(2)  # Keep both keys pressed for 2 seconds
-
-        # Release both keys
-        t.sleep(1)  # Adjust this sleep time as needed
-        # keyboard.release('d')
-        keyboard.release(Key.ctrl)
-        logging.info(f"D and Ctrl keys released.")
-    
-    except Exception as e:
-        logging.error(f"Error in press_keys: {e}")
-
-
-
-def wait_for_image(image_path, precision=0.8, wait_time=60):
-    """
-    Wait for an image to appear on the screen with a countdown.
-    Args:
-        image_path (str): Path to the image file.
-        precision (float): Precision of the image search.
-        wait_time (int): Maximum time to wait for the image in seconds.
-    Returns:
-        bool: True if the image is found, False if timeout occurs.
-    """
-    start_time = t.time()
-    end_time = start_time + wait_time
-
-    while True:
-        if click_image(image_path, precision):
-            logging.info(f"Found {image_path}.")
-            
-            if image_path == IMAGE_PATHS[resolution_key]["wizard101"]:
-                press_keys()
-            return True
-
-        remaining_time = int(end_time - t.time())
-        if remaining_time <= 0:
-            logging.error(f"Timeout waiting for {image_path}.")
-            return False
-
-        print(f"\rTime remaining: {remaining_time} seconds", end="")
-        t.sleep(1)
 
 if __name__ == "__main__":
     resolution_key = prompt_for_resolution()
-
-    wizard101_image_path = IMAGE_PATHS[resolution_key]["wizard101"]
-    if not wait_for_image(wizard101_image_path, precision=0.8):
-        logging.error("The 'wizard101' image was not found within the timeout period. Exiting the script.")
-        exit(1)
-
-    t.sleep(5)  # Initial wait before starting the main loop
-
-    while True:
-        try:
-            perform_sequence(resolution_key)
-        except Exception as e:
-            logging.error(f"Error in main loop: {e}")
-        # Uncomment the line below if you want to wait for 2 minutes before the next search
-        # t.sleep(120)
+    t.sleep(5)
+    perform_sequence(resolution_key)

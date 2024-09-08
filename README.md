@@ -15,13 +15,11 @@ This script automates the process of searching for an image on the screen and cl
 - Custom `imgs` module (for image searching and clicking)
 
 ## Usage
-
-1. **Update the `IMAGE_PATH`**: Set the path to the image you want to search for.
-2. **Run the Script**: Execute the script using Python.
+**Run the Script**: Execute the script using Python.
 
 ## Installation
 - pip install -r requirements.txt 
-or 
+or  
 - pip install opencv-python numpy pyautogui pillow
 
 # SCREEN RESOLUTION
@@ -31,10 +29,25 @@ python azoth.py
 
 ## UPCOMING UPDATE
 Shoot me an email if you need any particular update in mind
-all necessary update provided.
+* Only 800 x 600 data currently available.
+* Working on the other resolution.
 
 ## ISSUE OR MORE idea?
 mooncatcherseth@gmail.com
 
 ## DATE
 20240818
+
+## Features
+* Scout for azoth -> All resolution
+* Feed pet when happiness is zero -> 800 x 600
+* Change realm when scout is not available -> 800 x 600
+
+## How To Use
+* Clone the project
+* Open up wizard101 and go to area with a lot of reagent. 
+* go to your terminal -> go to the location -> python azoth.py -> choose resolution and go to your wizard101
+* Happy farming.
+
+## Note
+* only do this when you're afk
